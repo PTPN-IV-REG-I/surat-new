@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AgendaBookController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordChangeController;
 use App\Http\Controllers\DashboardController;
@@ -36,6 +37,8 @@ Route::middleware('auth')->group(function () {
 
         Route::post('letters/{letter}/dispositions', [LetterDispositionController::class, 'store'])->name('letters.dispositions.store')->middleware('can:letters.dispose');
         Route::delete('letters/{letter}/dispositions/{disposition}', [LetterDispositionController::class, 'destroy'])->name('letters.dispositions.destroy')->middleware('can:letters.dispose');
+
+        Route::get('agenda-book', [AgendaBookController::class, 'index'])->name('agenda-book.index');
 
         Route::prefix('admin')->name('admin.')->middleware('can:admin.users')->group(function () {
             Route::resource('users', UserController::class)->except(['show']);

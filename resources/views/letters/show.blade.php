@@ -124,16 +124,53 @@
             <h2 class="mb-3 text-sm font-semibold text-slate-900">Riwayat Disposisi</h2>
 
             @forelse ($letter->dispositions as $disposition)
-                <div class="border-b border-slate-100 py-2 text-sm last:border-0">
-                    <span class="font-medium text-slate-900">{{ $disposition->dispositionType?->label }}</span>
-                    <span class="text-slate-500"> &mdash; oleh {{ $disposition->creator?->name ?? '-' }}, {{ $disposition->disposed_at?->format('d-m-Y H:i') }}</span>
-                    @if ($disposition->note)
-                        <p class="mt-1 text-slate-600">{{ $disposition->note }}</p>
-                    @endif
+                <div class="flex items-start justify-between border-b border-slate-100 py-2 text-sm last:border-0">
+                    <div>
+                        <span class="font-medium text-slate-900">{{ $disposition->dispositionType?->label }}</span>
+                        <span class="text-slate-500"> &mdash; oleh {{ $disposition->creator?->name ?? '-' }}, {{ $disposition->disposed_at?->format('d-m-Y H:i') }}</span>
+                        @if ($disposition->note)
+                            <p class="mt-1 text-slate-600">{{ $disposition->note }}</p>
+                        @endif
+                    </div>
+
+                    @can('letters.dispose')
+                        @if (auth()->user()->can('letters.view-all') || $disposition->created_by === auth()->id())
+                            <form method="POST" action="{{ route('letters.dispositions.destroy', [$letter, $disposition]) }}"
+                                  onsubmit="return confirm('Hapus disposisi ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="text-xs text-red-600 hover:underline">Hapus</button>
+                            </form>
+                        @endif
+                    @endcan
                 </div>
             @empty
                 <p class="text-sm text-slate-400">Belum ada disposisi.</p>
             @endforelse
+
+            @can('letters.dispose')
+                <form method="POST" action="{{ route('letters.dispositions.store', $letter) }}" class="mt-4 border-t border-slate-100 pt-4">
+                    @csrf
+
+                    <p class="text-sm font-medium text-slate-700">Tambah Instruksi Disposisi</p>
+                    <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        @foreach ($dispositionTypes as $type)
+                            <label class="flex items-center gap-2 text-sm text-slate-600">
+                                <input type="checkbox" name="disposition_type_ids[]" value="{{ $type->id }}"
+                                       class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                {{ $type->label }}
+                            </label>
+                        @endforeach
+                    </div>
+
+                    <textarea name="note" rows="2" placeholder="Catatan (opsional)"
+                              class="mt-3 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"></textarea>
+
+                    <button class="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                        Simpan Disposisi
+                    </button>
+                </form>
+            @endcan
         </div>
 
         <div class="text-xs text-slate-400">

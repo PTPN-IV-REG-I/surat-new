@@ -151,6 +151,23 @@
                 </div>
             </div>
 
+            @if ($letter)
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 class="mb-3 text-sm font-semibold text-slate-900">Status Tindak Lanjut</h2>
+
+                    <div class="flex gap-4 text-sm">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="follow_up" value="0" @checked(! old('follow_up', $letter->follow_up)) class="text-emerald-600 focus:ring-emerald-500">
+                            Belum Ditindaklanjuti
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="follow_up" value="1" @checked(old('follow_up', $letter->follow_up)) class="text-emerald-600 focus:ring-emerald-500">
+                            Sudah Ditindaklanjuti
+                        </label>
+                    </div>
+                </div>
+            @endif
+
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 class="mb-1 text-sm font-semibold text-slate-900">Tujuan</h2>
                 <p class="mb-4 text-xs text-slate-500">Instruksi disposisi diisi terpisah oleh Sekretaris Direksi/Kepala Bagian setelah surat diterima.</p>

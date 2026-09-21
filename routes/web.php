@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordChangeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LetterController;
+use App\Http\Controllers\LetterDispositionController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
@@ -32,6 +33,9 @@ Route::middleware('auth')->group(function () {
         Route::get('letters/{letter}/edit', [LetterController::class, 'edit'])->name('letters.edit')->middleware('can:letters.update');
         Route::put('letters/{letter}', [LetterController::class, 'update'])->name('letters.update')->middleware('can:letters.update');
         Route::delete('letters/{letter}', [LetterController::class, 'destroy'])->name('letters.destroy')->middleware('can:letters.update');
+
+        Route::post('letters/{letter}/dispositions', [LetterDispositionController::class, 'store'])->name('letters.dispositions.store')->middleware('can:letters.dispose');
+        Route::delete('letters/{letter}/dispositions/{disposition}', [LetterDispositionController::class, 'destroy'])->name('letters.dispositions.destroy')->middleware('can:letters.dispose');
 
         Route::prefix('admin')->name('admin.')->middleware('can:admin.users')->group(function () {
             Route::resource('users', UserController::class)->except(['show']);

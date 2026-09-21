@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ScopesLetterVisibility;
 use App\Models\Department;
 use App\Models\Director;
+use App\Models\DispositionType;
 use App\Models\Letter;
 use App\Models\SenderUnit;
 use App\Services\AgendaNumberService;
@@ -21,6 +23,8 @@ use Illuminate\Support\Str;
  */
 class LetterController extends Controller
 {
+    use ScopesLetterVisibility;
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -66,7 +70,10 @@ class LetterController extends Controller
             'dispositions.creator',
         ]);
 
-        return view('letters.show', ['letter' => $letter]);
+        return view('letters.show', [
+            'letter' => $letter,
+            'dispositionTypes' => DispositionType::active()->orderBy('sort_order')->get(),
+        ]);
     }
 
     public function create()
@@ -114,6 +121,7 @@ class LetterController extends Controller
 
         $letter->update([
             ...$this->mappedFields($data),
+            'follow_up' => $request->boolean('follow_up'),
             'attachment_path' => $this->storeAttachment($request) ?? $letter->attachment_path,
         ]);
 
@@ -208,31 +216,4 @@ class LetterController extends Controller
         ];
     }
 
-    private function applyScope(Builder $query, $user): Builder
-    {
-        if ($user->can('letters.view-all')) {
-            return $query;
-        }
-
-        return $query->where(function (Builder $query) use ($user) {
-            // Kondisi mustahil sebagai basis: setiap izin di bawah HANYA
-            // memperluas (orWhere), tidak pernah mempersempit. Tanpa baris
-            // ini, user tanpa izin view apapun akan melihat SEMUA surat
-            // (closure kosong = tidak ada filter sama sekali di Laravel).
-            $query->whereRaw('1 = 0');
-
-            if ($user->can('letters.view-own-garden')) {
-                $query->orWhere('created_by', $user->id);
-            }
-
-            if ($user->can('letters.view-director') && $user->director_id) {
-                $query->orWhere('director_id', $user->director_id)
-                    ->orWhereHas('directorRecipients', fn (Builder $q) => $q->whereKey($user->director_id));
-            }
-
-            if ($user->can('letters.view-department') && $user->department_id) {
-                $query->orWhereHas('departmentRecipients', fn (Builder $q) => $q->whereKey($user->department_id));
-            }
-        });
-    }
 }

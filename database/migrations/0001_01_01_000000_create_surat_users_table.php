@@ -1,0 +1,55 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * `surat_users` menggantikan tabel `login` legacy. Login berbasis username
+     * (bukan email) karena sebagian akun dipakai bersama satu unit kerja, bukan
+     * identitas personal — lihat surat-new/readme/arsitektur.md §6.3 & §6.6 dan
+     * arsitektur-surat-lama.md §6.3-6.4 untuk detail temuan dari data legacy.
+     */
+    public function up(): void
+    {
+        Schema::create('surat_users', function (Blueprint $table) {
+            $table->id();
+            $table->string('username')->unique();
+            $table->string('name');
+            $table->string('password');
+            $table->boolean('is_active')->default(true);
+            $table->boolean('must_change_password')->default(false);
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('username')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('surat_users');
+    }
+};

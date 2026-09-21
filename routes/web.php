@@ -26,7 +26,12 @@ Route::middleware('auth')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::get('letters', [LetterController::class, 'index'])->name('letters.index');
+        Route::get('letters/create', [LetterController::class, 'create'])->name('letters.create')->middleware('can:letters.create');
+        Route::post('letters', [LetterController::class, 'store'])->name('letters.store')->middleware('can:letters.create');
         Route::get('letters/{letter}', [LetterController::class, 'show'])->name('letters.show');
+        Route::get('letters/{letter}/edit', [LetterController::class, 'edit'])->name('letters.edit')->middleware('can:letters.update');
+        Route::put('letters/{letter}', [LetterController::class, 'update'])->name('letters.update')->middleware('can:letters.update');
+        Route::delete('letters/{letter}', [LetterController::class, 'destroy'])->name('letters.destroy')->middleware('can:letters.update');
 
         Route::prefix('admin')->name('admin.')->middleware('can:admin.users')->group(function () {
             Route::resource('users', UserController::class)->except(['show']);

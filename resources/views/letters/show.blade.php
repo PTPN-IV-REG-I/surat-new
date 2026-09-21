@@ -17,7 +17,14 @@
                 <p class="text-sm text-slate-500">Agenda {{ $letter->letter_type }}-{{ $letter->agenda_no }}{{ $letter->agenda_series }}</p>
             </div>
 
-            <a href="{{ route('letters.index') }}" class="text-sm text-emerald-600 hover:underline">&larr; Kembali ke Arsip</a>
+            <div class="flex items-center gap-3">
+                @can('letters.update')
+                    @if (auth()->user()->can('letters.view-all') || $letter->created_by === auth()->id())
+                        <a href="{{ route('letters.edit', $letter) }}" class="text-sm text-emerald-600 hover:underline">Edit</a>
+                    @endif
+                @endcan
+                <a href="{{ route('letters.index') }}" class="text-sm text-emerald-600 hover:underline">&larr; Kembali ke Arsip</a>
+            </div>
         </div>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -7,6 +7,13 @@
     <div class="mx-auto max-w-6xl space-y-4">
         <div class="flex items-center justify-between">
             <h1 class="text-lg font-semibold text-slate-900">Arsip Surat</h1>
+
+            @can('letters.create')
+                <a href="{{ route('letters.create') }}"
+                   class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                    + Input Surat
+                </a>
+            @endcan
         </div>
 
         <form method="GET" class="flex flex-wrap gap-2">

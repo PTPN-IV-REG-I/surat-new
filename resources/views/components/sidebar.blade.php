@@ -27,9 +27,16 @@
         </a>
 
         <a href="{{ route('letters.index') }}"
-           class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('letters.*') ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+           class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('letters.index') || request()->routeIs('letters.show') ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
             Arsip Surat
         </a>
+
+        @can('letters.create')
+            <a href="{{ route('letters.create') }}"
+               class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('letters.create') || request()->routeIs('letters.edit') ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                Input Surat
+            </a>
+        @endcan
 
         @canany(['admin.users', 'admin.roles'])
             <div class="pt-4">

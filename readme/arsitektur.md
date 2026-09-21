@@ -676,3 +676,45 @@ Implementasi pertama di luar skema/data: autentikasi + RBAC + panel admin minima
 7. Admin bisa membuat user baru lengkap dengan role ter-assign.
 
 **Catatan lingkungan:** ekstensi `pdo_sqlite` tidak aktif di PHP lokal ini, jadi `phpunit.xml` diarahkan ke database MySQL terpisah (`ptpn_surat_testing`, bukan `ptpn_surat` dev) alih-alih SQLite in-memory default Laravel — `RefreshDatabase` migrasi ulang setiap run, aman dipisah dari data dev/legacy.
+
+---
+
+## 16. Fase 2 & 3 — input, disposisi, surat bagian, cetak, laporan (2026-09-21)
+
+Seluruh item kode di Fase 2 dan Fase 3 (§11) selesai diimplementasikan & ditest (38 test lolos total). Fase 5 (cut-over) sengaja belum disentuh — itu aksi produksi (freeze `daddy`, reset password massal, go-live) yang butuh keputusan bisnis eksplisit, bukan pekerjaan coding.
+
+### 16.1 AgendaNumberService — anti race-condition, dua domain
+
+Tabel baru `agenda_counters` (`domain`, `letter_type`, `year`, `last_number`) menggantikan `showlastnum()`/`agen()` lama yang menghitung `MAX(noagenda)+1` di client-side tanpa lock. `AgendaNumberService::next()` (domain `letter`) dan `::nextForDivision()` (domain `division`) mengunci baris counter lewat `lockForUpdate()` dalam transaksi. Baris counter pertama per kombinasi di-seed dari `MAX(agenda_no)` data existing (termasuk hasil migrasi historis Fase 4) supaya tidak tabrakan dengan nomor tahun berjalan yang sudah dipakai.
+
+Domain dipisah karena `letters.letter_type` (I-V) dan `letter_divisions.agenda_type_code` (mis. "SP-III") adalah ruang kode independen — tanpa kolom `domain`, kode yang kebetulan sama di kedua tabel akan berbagi satu counter.
+
+### 16.2 Input/edit surat (Kebun) — `LetterController`
+
+Form input **sengaja tidak** menyertakan checkbox instruksi disposisi (beda dari `inputsurat.asp` lama yang mencampur semuanya jadi satu form) — itu alur terpisah, lihat 16.3. `letter_type` dan `agenda_no` dikunci begitu surat dibuat (tidak bisa diubah lewat edit) supaya tidak merusak integritas counter. Otorisasi update memeriksa **kepemilikan** (`created_by === user.id`), bukan cuma permission `letters.update` secara umum — garden-officer tidak bisa edit surat officer lain meski sama-sama punya permission itu.
+
+### 16.3 Disposisi — `LetterDispositionController` + trait `ScopesLetterVisibility`
+
+Instruksi disposisi (dulu checkbox `dis_new1..18`) jadi alur terpisah dari input surat, ditambahkan oleh pemilik surat atau Sekretaris Direksi (permission `letters.dispose`) — satu submit bisa membuat beberapa baris `letter_dispositions` sekaligus. Kepala Bagian sengaja tidak diberi akses ke sini (mereka kelola `letter_divisions` secara terpisah, lihat 16.5).
+
+Logika scoping visibilitas surat (`letters.view-own-garden/department/director/all`) diekstrak dari `LetterController` ke trait `ScopesLetterVisibility` supaya dipakai bersama oleh `LetterController`, `LetterDispositionController`, `AgendaBookController`, `ReportController`, dan halaman cetak — disposisi/cetak/laporan hanya bisa menyentuh surat yang boleh dilihat user. Basis query scoping pakai kondisi mustahil (`whereRaw('1 = 0')`) sebelum di-`orWhere`-kan per permission, supaya user tanpa izin view apapun tidak diam-diam melihat semua data (closure `where()` kosong di Laravel = tidak ada filter sama sekali).
+
+### 16.4 Buku Agenda — `AgendaBookController`
+
+Register surat diurutkan numerik per No. Agenda (`CAST(agenda_no AS UNSIGNED)`), dikelompokkan per jenis — beda dari Arsip Surat yang diurutkan tanggal terima untuk pencarian. Backend lama (`buku.asp`, dipanggil AJAX dari `agenda.asp`) sudah tidak ada di source aplikasi lama (file hilang), dan dropdown "Kode Agenda" di `agenda.asp` (nilai `1,2,3A,3B,4,F1-F4`) tidak cocok dengan `letter_type` saat ini (`I-V`) — kemungkinan peninggalan era sistem berbeda (lihat `arsitektur-surat-lama.md` §5 soal tiga era restrukturisasi). Diimplementasikan versi bersih memakai skema `letter_type` yang berlaku sekarang, bukan replikasi persis.
+
+### 16.5 Surat Bagian — `LetterDivisionController` + `LetterDivisionDispositionController`
+
+Menggantikan `inputsuratbag.asp`/`editsuratbag.asp`. Berbeda dari `letters`, tidak ada scoping per-record di sini — seluruh route `letter-divisions.*` digerbangi permission `letter-divisions.manage` (Kepala Bagian/admin saja), karena skema `letter_divisions` memang tidak punya kolom scoping per bagian (`department_head` cuma field teks bebas, bukan FK — lihat migration). `LetterDivisionDispositionController` mengunci `actor_role='department-head'` karena route-nya sudah digerbangi permission yang sama; jalur disposisi Direksi (`actor_role='director-secretary'`, padanan `dis1..16` legacy di alur suratbag) **sengaja belum dibuat** — permission model saat ini tidak memberi `director-secretary` akses baca ke `letter_divisions` sama sekali, jadi menambah jalur tulis tanpa jalur baca tidak berguna. Menyusul kalau kebutuhan itu muncul.
+
+### 16.6 Cetak lembar disposisi — `letters/print.blade.php`
+
+Halaman print-friendly berdiri sendiri (tidak `@extends('layouts.app')`, tidak ada sidebar/topbar) meniru struktur formulir fisik `cdispa.asp` lama (kotak centang Kepada/Bagian/Disposisi dengan border tabel), tapi checkbox-nya diturunkan dari relasi data aktual (`directorRecipients`/`departmentRecipients`/`dispositions`), bukan flag kolom manual yang bisa tidak sinkron. PDF generation belum ditambahkan — print-to-PDF bawaan browser dianggap cukup untuk kebutuhan awal, menyusul kalau ada kebutuhan cetak massal/terjadwal.
+
+### 16.7 Laporan evaluasi tindak lanjut — `ReportController`
+
+Daftar surat `follow_up=false` diurutkan dari yang paling lama menunggu, dengan ringkasan jumlah yang sudah ≥ 7 hari — menggantikan highlight merah manual di `lihat1.asp` yang cuma kelihatan kalau scroll seluruh arsip satu per satu.
+
+### 16.8 Field yang diperbaiki saat implementasi
+
+`letters.follow_up` sempat terkunci permanen ke `false` di draf awal `LetterController` (field ada di skema tapi tidak ada jalur UI untuk mengubahnya). Ditambahkan sebagai radio button di form edit (bukan create, karena surat baru selalu mulai "Belum Ditindaklanjuti").

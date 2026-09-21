@@ -20,8 +20,8 @@ class LoginFlowTest extends TestCase
 
     public function test_guest_is_redirected_from_root_to_login(): void
     {
-        $this->get('/')->assertRedirect('/login');
-        $this->get('/login')->assertOk();
+        $this->get('/surat')->assertRedirect(route('login'));
+        $this->get(route('login'))->assertOk();
     }
 
     public function test_login_with_valid_credentials_forces_password_change_first(): void
@@ -33,7 +33,7 @@ class LoginFlowTest extends TestCase
         ]);
         $user->assignRole('garden-officer');
 
-        $response = $this->post('/login', [
+        $response = $this->post(route('login'), [
             'username' => 'kebun01',
             'password' => 'secret123',
         ]);
@@ -61,12 +61,12 @@ class LoginFlowTest extends TestCase
             'password' => bcrypt('secret123'),
         ]);
 
-        $response = $this->from('/login')->post('/login', [
+        $response = $this->from(route('login'))->post(route('login'), [
             'username' => 'kebun02',
             'password' => 'wrong-password',
         ]);
 
-        $response->assertRedirect('/login');
+        $response->assertRedirect(route('login'));
         $response->assertSessionHasErrors('username');
         $this->assertGuest();
     }
@@ -79,7 +79,7 @@ class LoginFlowTest extends TestCase
             'is_active' => false,
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->post(route('login'), [
             'username' => 'nonaktif',
             'password' => 'secret123',
         ]);

@@ -13,58 +13,67 @@ use App\Http\Controllers\LetterDivisionDispositionController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/login');
+/**
+ * Prefix /surat -- aplikasi ini dimaksudkan berbagi domain dengan
+ * aplikasi PTPN lain (portal-new, dsb) di path terpisah, bukan root.
+ * Nama route TIDAK berubah (login, dashboard, letters.index, dst),
+ * hanya URL-nya -- semua link di aplikasi pakai route()/redirect()->route()
+ * jadi otomatis ikut prefix ini tanpa perlu diubah satu per satu.
+ */
+Route::prefix('surat')->group(function () {
+    Route::get('/', fn () => redirect()->route('login'));
 
-Route::middleware('guest')->group(function () {
-    Route::get('login', [LoginController::class, 'create'])->name('login');
-    Route::post('login', [LoginController::class, 'store']);
-});
+    Route::middleware('guest')->group(function () {
+        Route::get('login', [LoginController::class, 'create'])->name('login');
+        Route::post('login', [LoginController::class, 'store']);
+    });
 
-Route::middleware('auth')->group(function () {
-    Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
+    Route::middleware('auth')->group(function () {
+        Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
-    // Di luar middleware password.change supaya tidak infinite redirect.
-    Route::get('password/change', [PasswordChangeController::class, 'edit'])->name('password.change');
-    Route::put('password/change', [PasswordChangeController::class, 'update'])->name('password.update');
+        // Di luar middleware password.change supaya tidak infinite redirect.
+        Route::get('password/change', [PasswordChangeController::class, 'edit'])->name('password.change');
+        Route::put('password/change', [PasswordChangeController::class, 'update'])->name('password.update');
 
-    Route::middleware('password.change')->group(function () {
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::middleware('password.change')->group(function () {
+            Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-        Route::get('letters', [LetterController::class, 'index'])->name('letters.index');
-        Route::get('letters/create', [LetterController::class, 'create'])->name('letters.create')->middleware('can:letters.create');
-        Route::post('letters', [LetterController::class, 'store'])->name('letters.store')->middleware('can:letters.create');
-        Route::get('letters/{letter}', [LetterController::class, 'show'])->name('letters.show');
-        Route::get('letters/{letter}/print', [LetterController::class, 'print'])->name('letters.print');
-        Route::get('letters/{letter}/edit', [LetterController::class, 'edit'])->name('letters.edit')->middleware('can:letters.update');
-        Route::put('letters/{letter}', [LetterController::class, 'update'])->name('letters.update')->middleware('can:letters.update');
-        Route::delete('letters/{letter}', [LetterController::class, 'destroy'])->name('letters.destroy')->middleware('can:letters.update');
+            Route::get('letters', [LetterController::class, 'index'])->name('letters.index');
+            Route::get('letters/create', [LetterController::class, 'create'])->name('letters.create')->middleware('can:letters.create');
+            Route::post('letters', [LetterController::class, 'store'])->name('letters.store')->middleware('can:letters.create');
+            Route::get('letters/{letter}', [LetterController::class, 'show'])->name('letters.show');
+            Route::get('letters/{letter}/print', [LetterController::class, 'print'])->name('letters.print');
+            Route::get('letters/{letter}/edit', [LetterController::class, 'edit'])->name('letters.edit')->middleware('can:letters.update');
+            Route::put('letters/{letter}', [LetterController::class, 'update'])->name('letters.update')->middleware('can:letters.update');
+            Route::delete('letters/{letter}', [LetterController::class, 'destroy'])->name('letters.destroy')->middleware('can:letters.update');
 
-        Route::post('letters/{letter}/dispositions', [LetterDispositionController::class, 'store'])->name('letters.dispositions.store')->middleware('can:letters.dispose');
-        Route::delete('letters/{letter}/dispositions/{disposition}', [LetterDispositionController::class, 'destroy'])->name('letters.dispositions.destroy')->middleware('can:letters.dispose');
+            Route::post('letters/{letter}/dispositions', [LetterDispositionController::class, 'store'])->name('letters.dispositions.store')->middleware('can:letters.dispose');
+            Route::delete('letters/{letter}/dispositions/{disposition}', [LetterDispositionController::class, 'destroy'])->name('letters.dispositions.destroy')->middleware('can:letters.dispose');
 
-        Route::get('agenda-book', [AgendaBookController::class, 'index'])->name('agenda-book.index');
+            Route::get('agenda-book', [AgendaBookController::class, 'index'])->name('agenda-book.index');
 
-        Route::get('reports/follow-up', [ReportController::class, 'followUp'])->name('reports.follow-up');
+            Route::get('reports/follow-up', [ReportController::class, 'followUp'])->name('reports.follow-up');
 
-        Route::prefix('letter-divisions')->name('letter-divisions.')->middleware('can:letter-divisions.manage')->group(function () {
-            Route::get('/', [LetterDivisionController::class, 'index'])->name('index');
-            Route::get('create', [LetterDivisionController::class, 'create'])->name('create');
-            Route::post('/', [LetterDivisionController::class, 'store'])->name('store');
-            Route::get('{division}', [LetterDivisionController::class, 'show'])->name('show');
-            Route::get('{division}/edit', [LetterDivisionController::class, 'edit'])->name('edit');
-            Route::put('{division}', [LetterDivisionController::class, 'update'])->name('update');
-            Route::delete('{division}', [LetterDivisionController::class, 'destroy'])->name('destroy');
+            Route::prefix('letter-divisions')->name('letter-divisions.')->middleware('can:letter-divisions.manage')->group(function () {
+                Route::get('/', [LetterDivisionController::class, 'index'])->name('index');
+                Route::get('create', [LetterDivisionController::class, 'create'])->name('create');
+                Route::post('/', [LetterDivisionController::class, 'store'])->name('store');
+                Route::get('{division}', [LetterDivisionController::class, 'show'])->name('show');
+                Route::get('{division}/edit', [LetterDivisionController::class, 'edit'])->name('edit');
+                Route::put('{division}', [LetterDivisionController::class, 'update'])->name('update');
+                Route::delete('{division}', [LetterDivisionController::class, 'destroy'])->name('destroy');
 
-            Route::post('{division}/dispositions', [LetterDivisionDispositionController::class, 'store'])->name('dispositions.store');
-        });
+                Route::post('{division}/dispositions', [LetterDivisionDispositionController::class, 'store'])->name('dispositions.store');
+            });
 
-        Route::prefix('admin')->name('admin.')->middleware('can:admin.users')->group(function () {
-            Route::resource('users', UserController::class)->except(['show']);
-            Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+            Route::prefix('admin')->name('admin.')->middleware('can:admin.users')->group(function () {
+                Route::resource('users', UserController::class)->except(['show']);
+                Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 
-            Route::middleware('can:admin.roles')->group(function () {
-                Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
-                Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+                Route::middleware('can:admin.roles')->group(function () {
+                    Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+                    Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+                });
             });
         });
     });

@@ -8,6 +8,8 @@ use App\Http\Controllers\Auth\PasswordChangeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LetterController;
 use App\Http\Controllers\LetterDispositionController;
+use App\Http\Controllers\LetterDivisionController;
+use App\Http\Controllers\LetterDivisionDispositionController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
@@ -39,6 +41,18 @@ Route::middleware('auth')->group(function () {
         Route::delete('letters/{letter}/dispositions/{disposition}', [LetterDispositionController::class, 'destroy'])->name('letters.dispositions.destroy')->middleware('can:letters.dispose');
 
         Route::get('agenda-book', [AgendaBookController::class, 'index'])->name('agenda-book.index');
+
+        Route::prefix('letter-divisions')->name('letter-divisions.')->middleware('can:letter-divisions.manage')->group(function () {
+            Route::get('/', [LetterDivisionController::class, 'index'])->name('index');
+            Route::get('create', [LetterDivisionController::class, 'create'])->name('create');
+            Route::post('/', [LetterDivisionController::class, 'store'])->name('store');
+            Route::get('{division}', [LetterDivisionController::class, 'show'])->name('show');
+            Route::get('{division}/edit', [LetterDivisionController::class, 'edit'])->name('edit');
+            Route::put('{division}', [LetterDivisionController::class, 'update'])->name('update');
+            Route::delete('{division}', [LetterDivisionController::class, 'destroy'])->name('destroy');
+
+            Route::post('{division}/dispositions', [LetterDivisionDispositionController::class, 'store'])->name('dispositions.store');
+        });
 
         Route::prefix('admin')->name('admin.')->middleware('can:admin.users')->group(function () {
             Route::resource('users', UserController::class)->except(['show']);

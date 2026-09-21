@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class AgendaCounter extends Model
 {
     protected $fillable = [
+        'domain',
         'letter_type',
         'year',
         'last_number',

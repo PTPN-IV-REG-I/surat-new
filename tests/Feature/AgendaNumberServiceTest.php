@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Letter;
+use App\Models\LetterDivision;
 use App\Models\SuratUser;
 use App\Services\AgendaNumberService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,5 +73,37 @@ class AgendaNumberServiceTest extends TestCase
         $this->assertSame(range(1, 10), $numbers);
         $this->assertSame(10, DB::table('agenda_counters')
             ->where('letter_type', 'III')->where('year', 2026)->value('last_number'));
+    }
+
+    public function test_division_domain_counter_is_independent_from_letter_domain(): void
+    {
+        $service = new AgendaNumberService;
+
+        // Kode "I" dipakai kedua domain -- tanpa pemisahan domain, ini akan
+        // berbagi satu counter dan saling tabrakan nomor.
+        $this->assertSame(1, $service->next('I', 2026));
+        $this->assertSame(2, $service->next('I', 2026));
+
+        $this->assertSame(1, $service->nextForDivision('I', 2026));
+        $this->assertSame(2, $service->nextForDivision('I', 2026));
+
+        $this->assertSame(3, $service->next('I', 2026));
+    }
+
+    public function test_division_counter_seeds_from_existing_letter_divisions(): void
+    {
+        $creator = SuratUser::factory()->create();
+
+        LetterDivision::create([
+            'agenda_type_code' => 'SP-III',
+            'agenda_no' => 8,
+            'agenda_date' => '2026-02-01',
+            'letter_no' => 'BAG/008',
+            'created_by' => $creator->id,
+        ]);
+
+        $number = (new AgendaNumberService)->nextForDivision('SP-III', 2026);
+
+        $this->assertSame(9, $number);
     }
 }

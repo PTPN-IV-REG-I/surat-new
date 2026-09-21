@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordChangeController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LetterController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
@@ -23,6 +24,9 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('password.change')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('letters', [LetterController::class, 'index'])->name('letters.index');
+        Route::get('letters/{letter}', [LetterController::class, 'show'])->name('letters.show');
 
         Route::prefix('admin')->name('admin.')->middleware('can:admin.users')->group(function () {
             Route::resource('users', UserController::class)->except(['show']);

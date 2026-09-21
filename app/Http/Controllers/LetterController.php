@@ -76,6 +76,18 @@ class LetterController extends Controller
         ]);
     }
 
+    public function print(Request $request, Letter $letter)
+    {
+        $this->applyScope(Letter::query()->whereKey($letter->id), $request->user())->firstOrFail();
+
+        $letter->load(['director', 'senderUnit', 'directorRecipients', 'departmentRecipients', 'dispositions.dispositionType']);
+
+        return view('letters.print', [
+            'letter' => $letter,
+            'departments' => Department::where('is_active', true)->orderBy('sort_order')->get(),
+        ]);
+    }
+
     public function create()
     {
         return view('letters.form', $this->formOptions() + ['letter' => null]);

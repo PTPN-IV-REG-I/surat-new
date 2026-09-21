@@ -10,6 +10,7 @@ use App\Http\Controllers\LetterController;
 use App\Http\Controllers\LetterDispositionController;
 use App\Http\Controllers\LetterDivisionController;
 use App\Http\Controllers\LetterDivisionDispositionController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
@@ -33,6 +34,7 @@ Route::middleware('auth')->group(function () {
         Route::get('letters/create', [LetterController::class, 'create'])->name('letters.create')->middleware('can:letters.create');
         Route::post('letters', [LetterController::class, 'store'])->name('letters.store')->middleware('can:letters.create');
         Route::get('letters/{letter}', [LetterController::class, 'show'])->name('letters.show');
+        Route::get('letters/{letter}/print', [LetterController::class, 'print'])->name('letters.print');
         Route::get('letters/{letter}/edit', [LetterController::class, 'edit'])->name('letters.edit')->middleware('can:letters.update');
         Route::put('letters/{letter}', [LetterController::class, 'update'])->name('letters.update')->middleware('can:letters.update');
         Route::delete('letters/{letter}', [LetterController::class, 'destroy'])->name('letters.destroy')->middleware('can:letters.update');
@@ -41,6 +43,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('letters/{letter}/dispositions/{disposition}', [LetterDispositionController::class, 'destroy'])->name('letters.dispositions.destroy')->middleware('can:letters.dispose');
 
         Route::get('agenda-book', [AgendaBookController::class, 'index'])->name('agenda-book.index');
+
+        Route::get('reports/follow-up', [ReportController::class, 'followUp'])->name('reports.follow-up');
 
         Route::prefix('letter-divisions')->name('letter-divisions.')->middleware('can:letter-divisions.manage')->group(function () {
             Route::get('/', [LetterDivisionController::class, 'index'])->name('index');

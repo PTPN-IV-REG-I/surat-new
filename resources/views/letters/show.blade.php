@@ -18,6 +18,7 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <a href="{{ route('letters.print', $letter) }}" target="_blank" class="text-sm text-emerald-600 hover:underline">Cetak Lembar Disposisi</a>
                 @can('letters.update')
                     @if (auth()->user()->can('letters.view-all') || $letter->created_by === auth()->id())
                         <a href="{{ route('letters.edit', $letter) }}" class="text-sm text-emerald-600 hover:underline">Edit</a>

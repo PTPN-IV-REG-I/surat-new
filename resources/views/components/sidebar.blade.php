@@ -50,6 +50,11 @@
             </a>
         @endcan
 
+        <a href="{{ route('reports.follow-up') }}"
+           class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('reports.*') ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            Evaluasi Tindak Lanjut
+        </a>
+
         @canany(['admin.users', 'admin.roles'])
             <div class="pt-4">
                 <p class="px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Administrasi Sistem</p>

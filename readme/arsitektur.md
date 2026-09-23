@@ -5,7 +5,7 @@
 > Database aplikasi: `ptpn_surat` (baru, terpisah dari `ptpn`).
 > Database sumber legacy: `daddy` (SQL Server, tabel `surat`, `login`, `t_kebun`, `urusurat`, `kodir`, `suratbag`).
 > Frontend: Blade + Vite + Tailwind CSS (konsisten dengan `portal-new`).
-> Scope dokumen ini: **arsitektur & perencanaan saja** — belum ada implementasi kode.
+> Status implementasi: **Fase 0 s.d. Fase 3 telah diimplementasikan penuh** dengan standar Clean Code, Dedicated Form Requests, Single-Pass Aggregation, DB Transactions, dan Design System PTPN.
 
 ---
 
@@ -526,30 +526,35 @@ Menu di-render berdasarkan permission; akses URL tetap dilindungi middleware + P
 
 ## 11. Fase implementasi
 
-### Fase 0 — baseline & safety
+### Fase 0 — baseline & safety [SELESAI]
 - dokumentasi arsitektur (dokumen ini);
 - verifikasi gap §7 (`suratbag`, `kodir`, jumlah kolom `dis_new*`);
 - putuskan label final `disposition_types` (§5.2);
 - setup project Laravel baru, `.env` ke `ptpn_surat`;
 - baseline schema, backup `daddy` sebelum migrasi apa pun.
 
-### Fase 1 — auth & read-only
+### Fase 1 — auth & read-only [SELESAI]
 - model & migrasi tabel master (`directors`, `departments`, `gardens`, `disposition_types`);
 - login/logout `surat_users`, role mapping dari `login.otoritas`;
 - dashboard per peran;
 - arsip surat read-only (`lihat1`, `SDMain` setara) + pencarian.
 
-### Fase 2 — input & disposisi
-- input/edit surat (Kebun);
+### Fase 2 — input & disposisi [SELESAI]
+- input/edit surat (Kebun/Kantor Direksi);
 - model disposisi terpadu (`letter_recipients`, `letter_dispositions`);
 - form disposisi Sekretaris Direksi;
 - agenda number service (anti race-condition);
-- buku agenda.
+- buku agenda register (Jenis I - X).
 
-### Fase 3 — surat bagian & cetak
-- modul `letter_divisions` (setelah `suratbag` terverifikasi);
-- cetak lembar disposisi (Blade print, PDF menyusul);
-- laporan sederhana (evaluasi tindak lanjut, dsb).
+### Fase 3 — surat bagian & cetak [SELESAI]
+- modul `letter_divisions` (surat masuk bagian);
+- cetak lembar disposisi A4 4-halaman (Region Head, Ops Head I, Ops Head II, Business Support);
+- modul administrasi pengguna & matriks peran (Spatie RBAC).
+- audit senior developer & refactoring clean code:
+  - Form Requests terdedikasi (`StoreLetterRequest`, `UpdateLetterRequest`, `StoreUserRequest`, `UpdateUserRequest`).
+  - Single-pass raw aggregation untuk metrik dashboard & count filter.
+  - Multi-row disposition transaction atomicity (`DB::transaction`).
+  - Pembersihan total komentar boilerplate AI di seluruh template Blade.
 
 ### Fase 4 — migrasi data historis
 - migrasi 44.597 baris `surat` ke `letters`;

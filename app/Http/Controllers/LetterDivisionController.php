@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 /**
  * Surat Bagian — menggantikan `inputsuratbag.asp`/`editsuratbag.asp`.
@@ -23,27 +24,42 @@ use Illuminate\Support\Str;
  */
 class LetterDivisionController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $divisions = LetterDivision::query()
-            ->with('creator')
-            ->when($request->filled('q'), function (Builder $query) use ($request) {
-                $term = '%'.$request->string('q').'%';
+        return view('letter-divisions.index');
+    }
+
+    /** Endpoint server-side DataTables — 19 ribu+ baris, tidak bisa dimuat sekaligus. */
+    public function data(Request $request)
+    {
+        return DataTables::eloquent(LetterDivision::query())
+            ->filter(function (Builder $query) use ($request) {
+                $search = trim((string) $request->input('search.value'));
+
+                if ($search === '') {
+                    return;
+                }
+
+                $term = "%{$search}%";
+
                 $query->where(function (Builder $query) use ($term) {
                     $query->where('letter_no', 'like', $term)
                         ->orWhere('subject', 'like', $term)
                         ->orWhere('sender_name', 'like', $term);
                 });
             })
-            ->orderByDesc('received_date')
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('letter-divisions.index', [
-            'divisions' => $divisions,
-            'q' => $request->string('q'),
-        ]);
+            ->orderColumn('received_date', 'received_date $1, id $1')
+            ->orderColumn('agenda', 'CAST(agenda_no AS UNSIGNED) $1, agenda_type_code $1')
+            ->addColumn('agenda', fn (LetterDivision $division) => "{$division->agenda_no}/{$division->agenda_type_code}")
+            ->editColumn('letter_no', fn (LetterDivision $division) => $division->letter_no ?? '-')
+            ->editColumn('received_date', fn (LetterDivision $division) => $division->received_date?->format('d-m-Y') ?? '-')
+            ->editColumn('sender_name', fn (LetterDivision $division) => $division->sender_name ?? '-')
+            ->editColumn('status', fn (LetterDivision $division) => $division->status
+                ? '<span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">'.e($division->status).'</span>'
+                : '')
+            ->addColumn('action', fn (LetterDivision $division) => '<a href="'.e(route('letter-divisions.show', $division)).'" class="text-emerald-600 hover:underline">Detail</a>')
+            ->rawColumns(['status', 'action'])
+            ->toJson();
     }
 
     public function show(LetterDivision $division)
@@ -158,7 +174,7 @@ class LetterDivisionController extends Controller
     private function formOptions(): array
     {
         return [
-            'directors' => Director::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
+            'directors' => Director::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'abbr']),
         ];
     }
 }

@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\Department;
 use App\Models\Director;
 use App\Models\SuratUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -21,21 +21,65 @@ use Spatie\Permission\Models\Role;
  */
 class UserController extends Controller
 {
+    /**
+     * Tampilkan daftar akun pengguna dengan filter peran, status, per_page, dan pencarian.
+     */
     public function index(Request $request)
     {
-        $users = SuratUser::query()
-            ->with(['roles', 'director', 'department'])
-            ->when($request->filled('q'), fn ($q) => $q->where(function ($q) use ($request) {
-                $term = "%{$request->string('q')}%";
-                $q->where('username', 'like', $term)->orWhere('name', 'like', $term);
-            }))
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
+        $search = trim((string) $request->input('search'));
+        $role = $request->input('role');
+        $status = $request->input('status');
+
+        $perPage = $request->integer('per_page', 10);
+        if (!in_array($perPage, [10, 25, 50, 100], true)) {
+            $perPage = 10;
+        }
+
+        $query = SuratUser::query()
+            ->with(['roles', 'director', 'department']);
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('nik', 'like', "%{$search}%");
+            });
+        }
+
+        if ($role) {
+            $query->whereHas('roles', fn ($q) => $q->where('name', $role));
+        }
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $users = $query->orderBy('name')->paginate($perPage)->withQueryString();
+
+        $stats = SuratUser::query()
+            ->selectRaw('
+                COUNT(*) as total,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive
+            ')
+            ->first();
+
+        $totalUsers = (int) ($stats->total ?? 0);
+        $activeUsers = (int) ($stats->active ?? 0);
+        $inactiveUsers = (int) ($stats->inactive ?? 0);
+        $adminUsers = SuratUser::role('admin')->count();
+
+        $roles = Role::orderBy('name')->pluck('name');
 
         return view('admin.users.index', [
             'users' => $users,
-            'q' => $request->string('q'),
+            'totalUsers' => $totalUsers,
+            'activeUsers' => $activeUsers,
+            'inactiveUsers' => $inactiveUsers,
+            'adminUsers' => $adminUsers,
+            'roles' => $roles,
         ]);
     }
 
@@ -44,11 +88,9 @@ class UserController extends Controller
         return view('admin.users.form', $this->formOptions() + ['user' => null]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreUserRequest $request): RedirectResponse
     {
-        $data = $this->validateUser($request);
-
-        $randomPassword = Str::password(12);
+        $data = $request->validated();
 
         $user = SuratUser::create([
             'username' => $data['username'],
@@ -56,7 +98,7 @@ class UserController extends Controller
             'director_id' => $data['director_id'] ?? null,
             'department_id' => $data['department_id'] ?? null,
             'nik' => $data['nik'] ?? null,
-            'password' => Hash::make($randomPassword),
+            'password' => Hash::make('12345678'),
             'is_active' => $request->boolean('is_active', true),
             'must_change_password' => true,
         ]);
@@ -64,7 +106,7 @@ class UserController extends Controller
         $user->syncRoles([$data['role']]);
 
         return redirect()->route('admin.users.index')
-            ->with('status', "Akun '{$user->username}' dibuat. Password sementara: {$randomPassword} (wajib diganti saat login pertama — catat sekarang, tidak ditampilkan lagi).");
+            ->with('status', "Akun '{$user->username}' dibuat dengan password default: 12345678 (wajib diganti saat login pertama).");
     }
 
     public function edit(SuratUser $user)
@@ -74,9 +116,9 @@ class UserController extends Controller
         return view('admin.users.form', $this->formOptions() + ['user' => $user]);
     }
 
-    public function update(Request $request, SuratUser $user): RedirectResponse
+    public function update(UpdateUserRequest $request, SuratUser $user): RedirectResponse
     {
-        $data = $this->validateUser($request, $user->id);
+        $data = $request->validated();
 
         $user->update([
             'username' => $data['username'],
@@ -111,30 +153,18 @@ class UserController extends Controller
     /**
      * Reset password paksa oleh admin — satu-satunya jalur reset karena
      * surat_users tidak punya email untuk self-service (arsitektur.md §7
-     * poin 8). Password baru ditampilkan SEKALI lewat flash message.
+     * poin 8). Password baru default '12345678'.
      */
     public function resetPassword(SuratUser $user): RedirectResponse
     {
-        $newPassword = Str::password(12);
+        $defaultPassword = '12345678';
 
         $user->forceFill([
-            'password' => Hash::make($newPassword),
-            'must_change_password' => true,
+            'password' => Hash::make($defaultPassword),
+            'must_change_password' => false,
         ])->save();
 
-        return back()->with('status', "Password '{$user->username}' direset. Password sementara: {$newPassword} (catat sekarang, tidak ditampilkan lagi).");
-    }
-
-    private function validateUser(Request $request, ?int $ignoreUserId = null): array
-    {
-        return $request->validate([
-            'username' => ['required', 'string', 'max:50', Rule::unique('surat_users', 'username')->ignore($ignoreUserId)],
-            'name' => ['required', 'string', 'max:100'],
-            'role' => ['required', Rule::exists('roles', 'name')],
-            'director_id' => ['nullable', 'exists:directors,id'],
-            'department_id' => ['nullable', 'exists:departments,id'],
-            'nik' => ['nullable', 'string', 'max:20'],
-        ]);
+        return back()->with('status', "Password '{$user->username}' berhasil direset ke: {$defaultPassword}");
     }
 
     private function formOptions(): array

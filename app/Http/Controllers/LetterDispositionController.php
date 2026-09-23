@@ -7,6 +7,7 @@ use App\Models\Letter;
 use App\Models\LetterDisposition;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Instruksi disposisi (dulu checkbox `dis_new1..18` di inputsurat.asp) —
@@ -33,14 +34,17 @@ class LetterDispositionController extends Controller
             'note' => ['nullable', 'string'],
         ]);
 
-        foreach ($data['disposition_type_ids'] as $dispositionTypeId) {
-            $letter->dispositions()->create([
-                'disposition_type_id' => $dispositionTypeId,
-                'created_by' => $user->id,
-                'disposed_at' => now(),
-                'note' => $data['note'] ?? null,
-            ]);
-        }
+        DB::transaction(function () use ($letter, $data, $user) {
+            $now = now();
+            foreach ($data['disposition_type_ids'] as $dispositionTypeId) {
+                $letter->dispositions()->create([
+                    'disposition_type_id' => $dispositionTypeId,
+                    'created_by' => $user->id,
+                    'disposed_at' => $now,
+                    'note' => $data['note'] ?? null,
+                ]);
+            }
+        });
 
         return redirect()->route('letters.show', $letter)->with('status', 'Disposisi ditambahkan.');
     }

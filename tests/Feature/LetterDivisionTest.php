@@ -72,4 +72,30 @@ class LetterDivisionTest extends TestCase
         $this->assertSame('department-head', $disposition->actor_role);
         $this->assertSame($head->id, $disposition->created_by);
     }
+
+    public function test_data_endpoint_lists_and_searches_division_letters(): void
+    {
+        $head = SuratUser::factory()->departmentHead()->create(['must_change_password' => false]);
+
+        LetterDivision::create(['agenda_type_code' => 'SP-III', 'agenda_no' => 1, 'letter_no' => 'BAG/001', 'subject' => 'Permohonan data', 'created_by' => $head->id]);
+        LetterDivision::create(['agenda_type_code' => 'SP-III', 'agenda_no' => 2, 'letter_no' => 'BAG/002', 'subject' => 'Undangan rapat', 'created_by' => $head->id]);
+
+        $this->actingAs($head)->get(route('letter-divisions.index'))->assertOk();
+
+        $all = $this->actingAs($head)->postJson(route('letter-divisions.data'));
+        $all->assertOk();
+        $all->assertJsonFragment(['letter_no' => 'BAG/001']);
+        $all->assertJsonFragment(['letter_no' => 'BAG/002']);
+
+        $searched = $this->actingAs($head)->postJson(route('letter-divisions.data'), ['search' => ['value' => 'Undangan']]);
+        $searched->assertJsonFragment(['letter_no' => 'BAG/002']);
+        $searched->assertJsonMissing(['letter_no' => 'BAG/001']);
+    }
+
+    public function test_garden_officer_cannot_call_the_data_endpoint(): void
+    {
+        $officer = SuratUser::factory()->gardenOfficer()->create(['must_change_password' => false]);
+
+        $this->actingAs($officer)->postJson(route('letter-divisions.data'))->assertForbidden();
+    }
 }

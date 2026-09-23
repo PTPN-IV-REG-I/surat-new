@@ -14,51 +14,47 @@
             </a>
         </div>
 
-        <form method="GET" class="flex gap-2">
-            <input type="text" name="q" value="{{ $q }}" placeholder="Cari no. surat / hal / dari..."
-                   class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
-            <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Cari</button>
-        </form>
-
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <table id="divisions-table" class="w-full text-sm">
+                <thead>
                     <tr>
-                        <th class="px-4 py-3">No. Agenda</th>
-                        <th class="px-4 py-3">No. Surat</th>
-                        <th class="px-4 py-3">Tgl Terima</th>
-                        <th class="px-4 py-3">Dari</th>
-                        <th class="px-4 py-3">Hal</th>
-                        <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3 text-right">Aksi</th>
+                        <th>No. Agenda</th>
+                        <th>No. Surat</th>
+                        <th>Tgl Terima</th>
+                        <th>Dari</th>
+                        <th>Hal</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($divisions as $division)
-                        <tr>
-                            <td class="px-4 py-3 font-medium text-slate-900">{{ $division->agenda_no }}/{{ $division->agenda_type_code }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $division->letter_no ?? '-' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $division->received_date?->format('d-m-Y') ?? '-' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $division->sender_name ?? '-' }}</td>
-                            <td class="px-4 py-3 max-w-xs truncate text-slate-600" title="{{ $division->subject }}">{{ $division->subject }}</td>
-                            <td class="px-4 py-3">
-                                @if ($division->status)
-                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ $division->status }}</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <a href="{{ route('letter-divisions.show', $division) }}" class="text-emerald-600 hover:underline">Detail</a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-6 text-center text-slate-400">Tidak ada surat bagian ditemukan.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
             </table>
         </div>
-
-        {{ $divisions->links() }}
     </div>
+
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', function () {
+            window.$('#divisions-table').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: @json(route('letter-divisions.data', [], false)),
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': window.$('meta[name="csrf-token"]').attr('content'),
+                    },
+                },
+                columns: [
+                    { data: 'agenda', name: 'agenda', className: 'font-medium text-slate-900' },
+                    { data: 'letter_no', name: 'letter_no' },
+                    { data: 'received_date', name: 'received_date' },
+                    { data: 'sender_name', name: 'sender_name' },
+                    { data: 'subject', name: 'subject', className: 'max-w-xs truncate' },
+                    { data: 'status', name: 'status', orderable: false, searchable: false },
+                    { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-right' },
+                ],
+                order: [[2, 'desc']],
+                pageLength: 20,
+            });
+        });
+    </script>
 @endsection

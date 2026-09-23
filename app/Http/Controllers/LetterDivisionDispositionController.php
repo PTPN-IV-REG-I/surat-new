@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\LetterDivision;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Instruksi disposisi Surat Bagian (dulu `diskabag1..16` + `dis1..16` di
@@ -29,15 +30,19 @@ class LetterDivisionDispositionController extends Controller
             'note' => ['nullable', 'string'],
         ]);
 
-        foreach ($data['disposition_type_ids'] as $dispositionTypeId) {
-            $division->dispositions()->create([
-                'disposition_type_id' => $dispositionTypeId,
-                'actor_role' => 'department-head',
-                'created_by' => $request->user()->id,
-                'disposed_at' => now(),
-                'note' => $data['note'] ?? null,
-            ]);
-        }
+        DB::transaction(function () use ($division, $data, $request) {
+            $now = now();
+            $userId = $request->user()->id;
+            foreach ($data['disposition_type_ids'] as $dispositionTypeId) {
+                $division->dispositions()->create([
+                    'disposition_type_id' => $dispositionTypeId,
+                    'actor_role' => 'department-head',
+                    'created_by' => $userId,
+                    'disposed_at' => $now,
+                    'note' => $data['note'] ?? null,
+                ]);
+            }
+        });
 
         return redirect()->route('letter-divisions.show', $division)->with('status', 'Disposisi ditambahkan.');
     }

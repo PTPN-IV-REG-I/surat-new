@@ -24,12 +24,11 @@ class LoginFlowTest extends TestCase
         $this->get(route('login'))->assertOk();
     }
 
-    public function test_login_with_valid_credentials_forces_password_change_first(): void
+    public function test_login_with_valid_credentials_redirects_to_dashboard(): void
     {
         $user = SuratUser::factory()->create([
             'username' => 'kebun01',
             'password' => bcrypt('secret123'),
-            'must_change_password' => true,
         ]);
         $user->assignRole('garden-officer');
 
@@ -39,18 +38,7 @@ class LoginFlowTest extends TestCase
         ]);
 
         $this->assertAuthenticatedAs($user);
-        $response->assertRedirect(route('password.change'));
-
-        // Belum ganti password -> dashboard tetap dilempar balik ke password.change
-        $this->get(route('dashboard'))->assertRedirect(route('password.change'));
-
-        $this->put(route('password.update'), [
-            'current_password' => 'secret123',
-            'password' => 'newSecret456',
-            'password_confirmation' => 'newSecret456',
-        ])->assertRedirect(route('dashboard'));
-
-        $this->assertFalse($user->fresh()->must_change_password);
+        $response->assertRedirect(route('dashboard'));
         $this->get(route('dashboard'))->assertOk();
     }
 

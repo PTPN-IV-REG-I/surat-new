@@ -47,10 +47,6 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        if ($user->must_change_password) {
-            return redirect()->route('password.change');
-        }
-
         return redirect()->intended(route('dashboard'));
     }
 

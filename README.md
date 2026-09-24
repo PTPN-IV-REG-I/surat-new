@@ -117,7 +117,7 @@ Aplikasi ini menggantikan sistem persuratan legacy Classic ASP (`surat/` berbasi
    ```
 
 6. **Akses Aplikasi**:
-   Aplikasi berjalan dengan prefix `/surat` (misalnya: `http://localhost/surat` atau `http://surat-new.test/surat`).
+   Aplikasi berjalan dengan prefix `/surat-new` (misalnya: `http://localhost/surat-new` atau `http://surat-new.test/surat-new`).
    - Akun default administrator:
      - **Username**: `admin`
      - **Password**: `12345678` (atau kredensial hasil seeder)

@@ -20,7 +20,8 @@ class LoginFlowTest extends TestCase
 
     public function test_guest_is_redirected_from_root_to_login(): void
     {
-        $this->get('/surat')->assertRedirect(route('login'));
+        $this->get('/surat-new')->assertRedirect(route('login'));
+        $this->get('/surat')->assertRedirect('/surat-new');
         $this->get(route('login'))->assertOk();
     }
 

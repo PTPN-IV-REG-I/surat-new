@@ -59,11 +59,11 @@ return [
     | Asset URL
     |--------------------------------------------------------------------------
     |
-    | Aplikasi ini di-mount di path /surat (lihat routes/web.php), bukan di
+    | Aplikasi ini di-mount di path /surat-new (lihat routes/web.php), bukan di
     | root domain. Tanpa ini, asset Vite (@vite di layouts/app.blade.php)
     | tetap digenerate sebagai "/build/..." dari root domain -- salah kalau
-    | domain root dipakai aplikasi PTPN lain. ASSET_URL=/surat di .env
-    | membuatnya jadi "/surat/build/...".
+    | domain root dipakai aplikasi PTPN lain. ASSET_URL=/surat-new di .env
+    | membuatnya jadi "/surat-new/build/...".
     |
     */
 

@@ -13,13 +13,16 @@ use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 /**
- * Prefix /surat -- aplikasi ini dimaksudkan berbagi domain dengan
+ * Prefix /surat-new -- aplikasi ini dimaksudkan berbagi domain dengan
  * aplikasi PTPN lain (portal-new, dsb) di path terpisah, bukan root.
  * Nama route TIDAK berubah (login, dashboard, letters.index, dst),
  * hanya URL-nya -- semua link di aplikasi pakai route()/redirect()->route()
  * jadi otomatis ikut prefix ini tanpa perlu diubah satu per satu.
  */
-Route::prefix('surat')->group(function () {
+Route::redirect('/', '/surat-new');
+Route::redirect('surat', '/surat-new');
+
+Route::prefix('surat-new')->group(function () {
     Route::get('/', fn () => redirect()->route('login'));
 
     Route::middleware('guest')->group(function () {
